@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:3000/api/v1',
+  baseURL: `${import.meta.env.VITE_BACKEND_URL}/api/v1`,
   // baseURL: 'https://et-gen2-0.onrender.com',
   withCredentials: true,
 });
-  
+
 // ── Auth ──────────────────────────────────────
 export const login = (data) => API.post('/auth/login', data);
 export const register = (data) => API.post('/auth/register', data);
