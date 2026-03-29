@@ -4,7 +4,7 @@ import { verifyJWT } from "../middleware/auth.middleware.js";
 const router = express.Router()
 
 router.post("/register", registerUser)
-router.post("/login", loginUser)
+router.post("/login", verifyJWT,loginUser)
 router.post("/logout", logoutUser)
 router.post("/refresh-access-token", refreshAccessToken)
 
