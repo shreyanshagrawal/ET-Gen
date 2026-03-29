@@ -6,7 +6,10 @@ import cookieParser from "cookie-parser";
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors({
-    origin: 'https://et-gen.vercel.app',
+    origin: [
+        'https://et-gen.vercel.app',
+        'http://localhost:5173'
+    ],
     credentials: true
 }))
 app.use(cookieParser())
