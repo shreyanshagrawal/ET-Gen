@@ -2,8 +2,9 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, FolderKanban, Users, Bot, Trophy,
-  Bell, LogOut, Settings, ChevronRight, Sparkles, Shield, UserCheck, ClipboardList
+  Bell, LogOut, Settings, ChevronRight, Sparkles, Shield, UserCheck, ClipboardList, UserCircle
 } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 
 const ADMIN_NAV = [
   { label: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
@@ -15,9 +16,10 @@ const ADMIN_NAV = [
 const MANAGER_NAV = [
   { label: 'Dashboard', to: '/member/dashboard', icon: LayoutDashboard },
   { label: 'My Tasks', to: '/member/tasks', icon: ClipboardList },
-  { label: 'My Projects', to: '/member/projects', icon: FolderKanban },
+  { label: 'My Projects', to: '/manager/projects', icon: FolderKanban },
   { label: 'My Team', to: '/manager/team', icon: Users },
   { label: 'Performance', to: '/member/performance', icon: Trophy },
+  { label: 'My Profile', to: '/member/profile', icon: UserCircle },
 ];
 
 const MEMBER_NAV = [
@@ -25,6 +27,7 @@ const MEMBER_NAV = [
   { label: 'My Tasks', to: '/member/tasks', icon: ClipboardList },
   { label: 'My Projects', to: '/member/projects', icon: FolderKanban },
   { label: 'Performance', to: '/member/performance', icon: Trophy },
+  { label: 'My Profile', to: '/member/profile', icon: UserCircle },
 ];
 
 export default function Sidebar() {
@@ -86,12 +89,9 @@ export default function Sidebar() {
       {/* Footer */}
       <div className="sidebar-footer">
         <div className="user-avatar-card" onClick={handleLogout} title="Click to logout">
-          <div className="avatar">{initials}</div>
-          <div className="user-info">
-            <div className="user-name">{user?.username || 'User'}</div>
-            <div className="user-role">{roleLabel}</div>
-          </div>
-          <LogOut size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <button className="btn btn-primary w-full" onClick={() => navigate('/member/tasks')} style={{backgroundColor: "red"}}>
+            Logout
+          </button>
         </div>
       </div>
     </aside>

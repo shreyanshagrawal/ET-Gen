@@ -18,6 +18,11 @@ import MemberDashboard from './pages/member/MemberDashboard';
 import MemberTasks from './pages/member/MemberTasks';
 import MemberProjects from './pages/member/MemberProjects';
 import Performance from './pages/member/Performance';
+import UserProfile from './pages/member/UserProfile';
+
+// Manager
+import ManagerTeams from './pages/manager/ManagerTeams';
+import ManagerProjects from './pages/manager/ManagerProjects';
 
 // Shared
 import Notifications from './pages/Notifications';
@@ -53,11 +58,12 @@ function App() {
       <Route path="/member/tasks" element={<MemberTasks />} />
       <Route path="/member/projects" element={<MemberProjects />} />
       <Route path="/member/performance" element={<Performance />} />
+      <Route path="/member/profile" element={<UserProfile />} />
 
-      {/* Manager routes — share member pages since both have tasks assigned */}
+      {/* Manager routes */}
       <Route path="/manager/dashboard" element={<MemberDashboard />} />
-      <Route path="/manager/projects" element={<MemberProjects />} />
-      <Route path="/manager/team" element={<AdminTeams />} />
+      <Route path="/manager/team" element={<ManagerTeams />} />
+      <Route path="/manager/projects" element={<ManagerProjects />} />
 
       {/* Admin AI redirect to projects (AI lives inside project detail) */}
       <Route path="/admin/ai" element={<Navigate to="/admin/projects" replace />} />

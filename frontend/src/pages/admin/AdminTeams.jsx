@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AppLayout } from '../../components/ProtectedLayout';
 import { getAllTeams, adminGetAllUsers, createTeam, addMemberToTeam, removeMemberFromTeam } from '../../lib/api';
-import { Plus, X, Users, Crown } from 'lucide-react';
+import { Plus, X, Users, Crown, AlertTriangle } from 'lucide-react';
 import { Toast, useToast } from '../../components/Toast';
 
 export default function AdminTeams() {
@@ -13,6 +13,7 @@ export default function AdminTeams() {
   const [createForm, setCreateForm] = useState({ name: '', description: '', managerId: '' });
   const [addUserId, setAddUserId] = useState('');
   const [actionLoading, setActionLoading] = useState('');
+  const [confirmRemove, setConfirmRemove] = useState(null); // { teamId, userId, username }
   const { toasts, showToast, dismissToast } = useToast();
 
   const fetchData = async () => {
@@ -53,11 +54,17 @@ export default function AdminTeams() {
   };
 
   const handleRemoveMember = async (teamId, userId, username) => {
-    if (!window.confirm(`Remove ${username} from the team?`)) return;
+    setConfirmRemove({ teamId, userId, username });
+  };
+
+  const confirmAndRemove = async () => {
+    if (!confirmRemove) return;
+    const { teamId, userId, username } = confirmRemove;
+    setConfirmRemove(null);
     try {
       await removeMemberFromTeam(teamId, userId);
       fetchData();
-      showToast(`${username} removed from team.`, 'success');
+      showToast(`${username} has been removed from the team.`, 'success');
     } catch (err) { showToast(err.response?.data?.message || 'Error removing member', 'error'); }
   };
 
@@ -217,6 +224,36 @@ export default function AdminTeams() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Remove Modal */}
+      {confirmRemove && (
+        <div className="modal-overlay" onClick={() => setConfirmRemove(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '8px 0 0' }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%', marginBottom: 16,
+                background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <AlertTriangle size={24} color="var(--danger)" />
+              </div>
+              <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>Remove Member?</h3>
+              <p style={{ margin: '0 0 24px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                Are you sure you want to remove <strong style={{ color: 'var(--text-primary)' }}>{confirmRemove.username}</strong> from this team?
+                They will lose team access.
+              </p>
+              <div className="flex gap-10" style={{ width: '100%' }}>
+                <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmRemove(null)}>
+                  Cancel
+                </button>
+                <button className="btn btn-danger" style={{ flex: 1, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--danger)' }}
+                  onClick={confirmAndRemove}>
+                  <X size={14} /> Remove
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

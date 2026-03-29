@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AppLayout } from '../../components/ProtectedLayout';
 import { getMyTasks, updateTaskStatus, submitWork, getTaskSubmissions, aiReviewSubmission } from '../../lib/api';
-import { Bot, Send, ExternalLink, X } from 'lucide-react';
+import { Bot, Send, ExternalLink, X, FolderKanban, ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react';
 import { Toast, useToast } from '../../components/Toast';
 
 const STATUS_COLS = ['pending', 'in-progress', 'review', 'completed'];
@@ -10,13 +10,132 @@ const STATUS_BADGE = {
   pending: 'badge-gray', 'in-progress': 'badge-blue',
   review: 'badge-amber', completed: 'badge-green'
 };
-
 const COL_CONFIG = {
   'pending':     { label: 'Pending',     dotClass: 'col-dot-pending' },
   'in-progress': { label: 'In Progress', dotClass: 'col-dot-inprogress' },
   'review':      { label: 'In Review',   dotClass: 'col-dot-review' },
   'completed':   { label: 'Completed',   dotClass: 'col-dot-completed' },
 };
+
+// Color palette for project boards
+const PROJECT_COLORS = [
+  { border: 'rgba(124,58,237,0.4)', bg: 'rgba(124,58,237,0.1)', dot: '#7c3aed' },
+  { border: 'rgba(59,130,246,0.4)', bg: 'rgba(59,130,246,0.1)', dot: '#3b82f6' },
+  { border: 'rgba(16,185,129,0.4)', bg: 'rgba(16,185,129,0.1)', dot: '#10b981' },
+  { border: 'rgba(245,158,11,0.4)', bg: 'rgba(245,158,11,0.1)', dot: '#f59e0b' },
+  { border: 'rgba(236,72,153,0.4)', bg: 'rgba(236,72,153,0.1)', dot: '#ec4899' },
+  { border: 'rgba(6,182,212,0.4)',  bg: 'rgba(6,182,212,0.1)',  dot: '#06b6d4' },
+];
+
+function TaskCard({ task, onClick }) {
+  return (
+    <div className="task-card" onClick={() => onClick(task)}>
+      <div className="flex items-start gap-8">
+        <div className={`priority-indicator ${PRIORITY_CLASS[task.priority] || ''}`} style={{ marginTop: 3, width: 3, height: 60 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex items-center gap-6" style={{ marginBottom: 6 }}>
+            <span className={`task-type-badge ${task.type === 'epic' ? 'type-epic' : task.type === 'subtask' ? 'type-subtask' : 'type-task'}`}>
+              {task.type}
+            </span>
+          </div>
+          <div className="task-card-title">{task.title}</div>
+          {task.desc && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 6 }} className="truncate">
+              {task.desc}
+            </div>
+          )}
+          <div className="task-card-meta">
+            {task.aiScore != null && (
+              <span className="badge badge-violet" style={{ fontSize: '0.6875rem' }}>
+                🤖 {task.aiScore}/100
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectKanban({ project, tasks, color, onTaskClick, filterType }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const filteredTasks = tasks.filter(t => filterType === 'all' || t.type === filterType);
+  const tasksByStatus = STATUS_COLS.reduce((acc, s) => {
+    acc[s] = filteredTasks.filter(t => t.status === s);
+    return acc;
+  }, {});
+  const totalDone = tasks.filter(t => t.status === 'completed').length;
+  const pct = tasks.length ? Math.round((totalDone / tasks.length) * 100) : 0;
+
+  return (
+    <div style={{ marginBottom: 32 }}>
+      {/* Project header */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12, marginBottom: collapsed ? 0 : 16,
+          padding: '12px 16px',
+          background: color.bg, borderRadius: 12,
+          border: `1px solid ${color.border}`,
+          cursor: 'pointer', transition: 'all 0.2s',
+          userSelect: 'none',
+        }}
+        onClick={() => setCollapsed(c => !c)}
+      >
+        <div style={{
+          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+          background: color.dot, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontWeight: 900, color: '#fff', fontSize: '0.8rem'
+        }}>
+          {project.title?.slice(0, 2)?.toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }} className="truncate">
+            {project.title}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            {tasks.length} tasks · {totalDone} completed · {pct}% done
+          </div>
+        </div>
+        {/* Mini progress bar */}
+        <div style={{ width: 100, height: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 99, flexShrink: 0, overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', background: color.dot, borderRadius: 99, transition: 'width 0.5s' }} />
+        </div>
+        <div style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+          {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+        </div>
+      </div>
+
+      {!collapsed && (
+        <div className="kanban-board" style={{ overflowX: 'auto' }}>
+          {STATUS_COLS.map(status => {
+            const col = COL_CONFIG[status];
+            const colTasks = tasksByStatus[status] || [];
+            return (
+              <div key={status} className="kanban-column">
+                <div className="kanban-column-header">
+                  <div className="kanban-col-title">
+                    <div className={`kanban-col-dot ${col.dotClass}`} />
+                    {col.label}
+                  </div>
+                  <div className="kanban-col-count">{colTasks.length}</div>
+                </div>
+                <div className="kanban-cards">
+                  {colTasks.length === 0 ? (
+                    <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      No tasks
+                    </div>
+                  ) : colTasks.map(task => (
+                    <TaskCard key={task._id} task={task} onClick={onTaskClick} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function MemberTasks() {
   const [tasks, setTasks] = useState([]);
@@ -27,6 +146,8 @@ export default function MemberTasks() {
   const [submitting, setSubmitting] = useState(false);
   const [reviewing, setReviewing] = useState(null);
   const [filterType, setFilterType] = useState('all');
+  const [viewMode, setViewMode] = useState('by-project'); // 'by-project' | 'all'
+  const [activeProject, setActiveProject] = useState('all'); // project id or 'all'
   const { toasts, showToast, dismissToast } = useToast();
 
   const fetchTasks = async () => {
@@ -85,11 +206,24 @@ export default function MemberTasks() {
     setReviewing(null);
   };
 
-  const filteredTasks = tasks.filter(t => filterType === 'all' || t.type === filterType);
-  const tasksByStatus = STATUS_COLS.reduce((acc, s) => {
-    acc[s] = filteredTasks.filter(t => t.status === s);
-    return acc;
-  }, {});
+  // Group tasks by project
+  const projectMap = {};
+  for (const task of tasks) {
+    const pid = task.projectID?._id || task.projectID || 'unknown';
+    if (!projectMap[pid]) {
+      projectMap[pid] = { project: task.projectID || { _id: 'unknown', title: 'Unknown Project' }, tasks: [] };
+    }
+    projectMap[pid].tasks.push(task);
+  }
+  const projectGroups = Object.values(projectMap);
+
+  // Flat filtered view
+  const activeProjTasks = activeProject === 'all' ? tasks : tasks.filter(t => {
+    const pid = t.projectID?._id || t.projectID;
+    return pid === activeProject;
+  });
+  const filteredFlat = activeProjTasks.filter(t => filterType === 'all' || t.type === filterType);
+  const flatByStatus = STATUS_COLS.reduce((acc, s) => { acc[s] = filteredFlat.filter(t => t.status === s); return acc; }, {});
 
   if (loading) return (
     <AppLayout>
@@ -103,71 +237,175 @@ export default function MemberTasks() {
       <div className="topbar">
         <div>
           <h1 className="page-title">My Tasks</h1>
-          <p className="page-subtitle">{tasks.length} tasks assigned to you</p>
+          <p className="page-subtitle">{tasks.length} tasks across {projectGroups.length} project{projectGroups.length !== 1 ? 's' : ''}</p>
         </div>
-        <div className="tabs">
-          {['all', 'epic', 'task', 'subtask'].map(t => (
-            <button key={t} className={`tab-btn${filterType === t ? ' active' : ''}`} onClick={() => setFilterType(t)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+        <div className="flex items-center gap-8">
+          {/* View mode toggle */}
+          <div style={{
+            display: 'flex', background: 'rgba(255,255,255,0.06)',
+            borderRadius: 8, padding: 3, border: '1px solid var(--border-subtle)'
+          }}>
+            <button
+              onClick={() => setViewMode('by-project')}
+              style={{
+                padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                fontSize: '0.8125rem', fontWeight: 600, transition: 'all 0.15s',
+                background: viewMode === 'by-project' ? 'rgba(124,58,237,0.4)' : 'transparent',
+                color: viewMode === 'by-project' ? 'var(--accent-secondary)' : 'var(--text-muted)',
+                display: 'flex', alignItems: 'center', gap: 5
+              }}
+            >
+              <FolderKanban size={13} /> By Project
             </button>
-          ))}
+            <button
+              onClick={() => setViewMode('all')}
+              style={{
+                padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                fontSize: '0.8125rem', fontWeight: 600, transition: 'all 0.15s',
+                background: viewMode === 'all' ? 'rgba(124,58,237,0.4)' : 'transparent',
+                color: viewMode === 'all' ? 'var(--accent-secondary)' : 'var(--text-muted)',
+                display: 'flex', alignItems: 'center', gap: 5
+              }}
+            >
+              <LayoutGrid size={13} /> All Tasks
+            </button>
+          </div>
+
+          {/* Type filter */}
+          <div className="tabs">
+            {['all', 'epic', 'task', 'subtask'].map(t => (
+              <button key={t} className={`tab-btn${filterType === t ? ' active' : ''}`} onClick={() => setFilterType(t)}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="kanban-board">
-        {STATUS_COLS.map(status => {
-          const col = COL_CONFIG[status];
-          const colTasks = tasksByStatus[status] || [];
-          return (
-            <div key={status} className="kanban-column">
-              <div className="kanban-column-header">
-                <div className="kanban-col-title">
-                  <div className={`kanban-col-dot ${col.dotClass}`} />
-                  {col.label}
-                </div>
-                <div className="kanban-col-count">{colTasks.length}</div>
-              </div>
-              <div className="kanban-cards">
-                {colTasks.length === 0 ? (
-                  <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    No tasks
-                  </div>
-                ) : colTasks.map(task => (
-                  <div key={task._id} className="task-card" onClick={() => openTask(task)}>
-                    <div className="flex items-start gap-8">
-                      <div className={`priority-indicator ${PRIORITY_CLASS[task.priority] || ''}`} style={{ marginTop: 3, width: 3, height: 60 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="flex items-center gap-6" style={{ marginBottom: 6 }}>
-                          <span className={`task-type-badge ${task.type === 'epic' ? 'type-epic' : task.type === 'subtask' ? 'type-subtask' : 'type-task'}`}>
-                            {task.type}
-                          </span>
-                        </div>
-                        <div className="task-card-title">{task.title}</div>
-                        {task.desc && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }} className="truncate">
-                            {task.desc}
-                          </div>
-                        )}
-                        <div className="task-card-meta">
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            📁 {task.projectID?.title || 'Project'}
-                          </span>
-                          {task.aiScore !== null && task.aiScore !== undefined && (
-                            <span className="badge badge-violet" style={{ fontSize: '0.6875rem' }}>
-                              🤖 {task.aiScore}/100
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* ─── By-Project View ─── */}
+      {viewMode === 'by-project' && (
+        projectGroups.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">📋</div>
+            <h3>No tasks assigned yet</h3>
+            <p>Tasks assigned to you will appear here, grouped by project</p>
+          </div>
+        ) : (
+          projectGroups.map((g, i) => (
+            <ProjectKanban
+              key={g.project?._id || i}
+              project={g.project}
+              tasks={g.tasks}
+              color={PROJECT_COLORS[i % PROJECT_COLORS.length]}
+              onTaskClick={openTask}
+              filterType={filterType}
+            />
+          ))
+        )
+      )}
+
+      {/* ─── All Tasks View (flat kanban with project filter tabs) ─── */}
+      {viewMode === 'all' && (
+        <>
+          {/* Project tabs */}
+          {projectGroups.length > 1 && (
+            <div style={{
+              display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={() => setActiveProject('all')}
+                style={{
+                  padding: '6px 14px', borderRadius: 20, border: '1px solid',
+                  cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, transition: 'all 0.15s',
+                  borderColor: activeProject === 'all' ? 'var(--accent-secondary)' : 'var(--border-subtle)',
+                  background: activeProject === 'all' ? 'rgba(124,58,237,0.15)' : 'transparent',
+                  color: activeProject === 'all' ? 'var(--accent-secondary)' : 'var(--text-muted)',
+                }}
+              >
+                All Projects ({tasks.length})
+              </button>
+              {projectGroups.map((g, i) => {
+                const pid = g.project?._id || 'unknown';
+                const col = PROJECT_COLORS[i % PROJECT_COLORS.length];
+                return (
+                  <button
+                    key={pid}
+                    onClick={() => setActiveProject(pid)}
+                    style={{
+                      padding: '6px 14px', borderRadius: 20, border: '1px solid',
+                      cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, transition: 'all 0.15s',
+                      borderColor: activeProject === pid ? col.dot : 'var(--border-subtle)',
+                      background: activeProject === pid ? col.bg : 'transparent',
+                      color: activeProject === pid ? col.dot : 'var(--text-muted)',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: col.dot, flexShrink: 0 }} />
+                    {g.project?.title || 'Unknown'} ({g.tasks.length})
+                  </button>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          )}
+
+          <div className="kanban-board">
+            {STATUS_COLS.map(status => {
+              const col = COL_CONFIG[status];
+              const colTasks = flatByStatus[status] || [];
+              return (
+                <div key={status} className="kanban-column">
+                  <div className="kanban-column-header">
+                    <div className="kanban-col-title">
+                      <div className={`kanban-col-dot ${col.dotClass}`} />
+                      {col.label}
+                    </div>
+                    <div className="kanban-col-count">{colTasks.length}</div>
+                  </div>
+                  <div className="kanban-cards">
+                    {colTasks.length === 0 ? (
+                      <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        No tasks
+                      </div>
+                    ) : colTasks.map(task => {
+                      const projIdx = projectGroups.findIndex(g => {
+                        const pid = g.project?._id || 'unknown';
+                        return (task.projectID?._id || task.projectID) === pid;
+                      });
+                      const col2 = PROJECT_COLORS[projIdx >= 0 ? projIdx % PROJECT_COLORS.length : 0];
+                      return (
+                        <div key={task._id} className="task-card" onClick={() => openTask(task)}>
+                          {/* Project color stripe */}
+                          <div style={{
+                            height: 3, background: col2.dot, borderRadius: '99px 99px 0 0',
+                            margin: '-4px -4px 8px',
+                          }} />
+                          <div className="flex items-start gap-8">
+                            <div className={`priority-indicator ${PRIORITY_CLASS[task.priority] || ''}`} style={{ marginTop: 3, width: 3, height: 50 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div className="flex items-center gap-6" style={{ marginBottom: 5 }}>
+                                <span className={`task-type-badge ${task.type === 'epic' ? 'type-epic' : task.type === 'subtask' ? 'type-subtask' : 'type-task'}`}>{task.type}</span>
+                              </div>
+                              <div className="task-card-title">{task.title}</div>
+                              <div style={{ fontSize: '0.7rem', color: col2.dot, marginTop: 4, fontWeight: 600 }}>
+                                📁 {task.projectID?.title || 'Unknown'}
+                              </div>
+                              {task.aiScore != null && (
+                                <span className="badge badge-violet" style={{ fontSize: '0.6875rem', marginTop: 6, display: 'inline-block' }}>
+                                  🤖 {task.aiScore}/100
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Task Detail Modal */}
       {selectedTask && (
@@ -182,6 +420,11 @@ export default function MemberTasks() {
                   <span className={`badge ${STATUS_BADGE[selectedTask.status] || 'badge-gray'}`}>
                     {selectedTask.status}
                   </span>
+                  {selectedTask.projectID?.title && (
+                    <span className="badge badge-gray" style={{ fontSize: '0.6875rem' }}>
+                      📁 {selectedTask.projectID.title}
+                    </span>
+                  )}
                 </div>
                 <h3 className="modal-title">{selectedTask.title}</h3>
               </div>
@@ -266,7 +509,6 @@ export default function MemberTasks() {
                       </a>
                     )}
 
-                    {/* AI Review Results */}
                     {sub.aiReview?.summary ? (
                       <div className="ai-panel" style={{ marginTop: 12, padding: 14 }}>
                         <div className="ai-label" style={{ marginBottom: 8 }}><Bot size={10} /> AI Review</div>

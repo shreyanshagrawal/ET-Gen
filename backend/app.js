@@ -18,6 +18,7 @@ import adminRouter from './src/routes/admin.router.js'
 import aiRouter from './src/routes/ai.router.js'
 import teamRouter from './src/routes/team.router.js'
 import taskRouter from './src/routes/task.router.js'
+import userRouter from './src/routes/user.router.js'
 
 // Routes Declaration
 app.use('/api/v1/projects', projectRouter)
@@ -26,6 +27,7 @@ app.use('/api/v1/admin', adminRouter)
 app.use('/api/v1/ai', aiRouter)
 app.use('/api/v1/teams', teamRouter)
 app.use('/api/v1/tasks', taskRouter)
+app.use('/api/v1/users', userRouter)
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

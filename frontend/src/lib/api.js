@@ -21,6 +21,14 @@ export const adminRejectProject = (projectId, reason) => API.patch(`/admin/${pro
 export const adminDeleteProject = (projectId) => API.delete(`/admin/${projectId}`);
 export const adminAddMember = (projectId, userID) => API.post(`/admin/${projectId}/add-dev`, { userID });
 
+// ── Users ─────────────────────────────────────
+export const getMyProfile = () => API.get('/users/profile');
+export const updateMyProfile = (data) => API.patch('/users/profile', data);
+export const getMyTeam = () => API.get('/users/my-team');
+export const getMyManagedTeams = () => API.get('/users/my-managed-teams');
+export const getManagerProjects = () => API.get('/users/my-manager-projects');
+export const getUserProgress = (userId) => API.get(`/users/${userId}/progress`);
+
 // ── Teams ─────────────────────────────────────
 export const getAllTeams = () => API.get('/teams');
 export const getTeamById = (teamId) => API.get(`/teams/${teamId}`);
