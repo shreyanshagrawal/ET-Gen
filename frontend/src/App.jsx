@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext';
 // Auth
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import LandingPage from './pages/LandingPage';
 
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -39,11 +40,12 @@ function App() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
       {/* Root redirect */}
-      <Route path="/" element={<RoleRedirect />} />
+      <Route path="/dashboard" element={<RoleRedirect />} />
 
       {/* Admin routes */}
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
