@@ -27,7 +27,7 @@
 
 html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--lavender-ultra);color:var(--slate);overflow-x:hidden;line-height:1.65;-webkit-font-smoothing:antialiased}
-*{cursor:none !important}
+.landing-page-container *, .landing-page-container { cursor:none !important }
 
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-track{background:var(--plum)}
